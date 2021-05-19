@@ -7,11 +7,13 @@ class Board:
     def is_able_to_move(self):
         raise NotImplementedError()
 
-    def move(self, piece, steps):
+    def set_location(self, piece: Piece, location: int):
         raise NotImplementedError()
 
 
 class Chessboard(Board):
+
+    LOC_OUT_BOARD = -2
 
     def __init__(self, player_lane_size: int, max_num_players: int) -> None:
         self.state = [self.EMPTY] * (player_lane_size * max_num_players)
@@ -19,13 +21,19 @@ class Chessboard(Board):
     def __repr__(self) -> str:
         return ' '.join(['**' if step == self.EMPTY else str(step) for step in self.state])
 
-    def is_able_to_move(self, piece, steps):
-        try:
-            piece_location = self.state.index(piece)
-        except ValueError:
-            if steps == 6 or steps == 1:
+    def is_able_kickstart(self, player, steps: int):
+        if steps == 6 or steps == 1:
+            if self.state[player.offset] == self.EMPTY:
                 return True
-            return False
+            if self.state[player.offset].player != player:
+                return True
+        return False
+
+    def is_able_to_move(self, piece: Piece, steps: int):
+        piece_location = self.location(piece)
+
+        if piece_location == self.LOC_OUT_BOARD:
+            return self.is_able_kickstart(piece.player, steps)
 
         if piece_location + steps + 1 > len(self.state):
             first = self.state[piece_location + 1:]
@@ -39,28 +47,23 @@ class Chessboard(Board):
 
         return False
 
-    def move(self, piece: Piece, steps: int):
+    def location(self, piece: Piece):
         try:
-            piece_location = self.state.index(piece)
+            return self.state.index(piece)
         except ValueError:
-            if steps == 6 or steps == 1:
-                self.state[piece.player.offset] = piece
-                return
-            raise ValueError()
+            return self.LOC_OUT_BOARD
 
-        self.state[piece_location] = self.EMPTY
+    def set_location(self, piece: Piece, location: int):
+        piece_location = self.location(piece)
 
-        if piece_location + steps + 1 > len(self.state):
-            self.state[(piece_location + steps) % len(self.state)] = piece
+        if piece_location == self.LOC_OUT_BOARD and location != self.LOC_OUT_BOARD:
+            self.state[location] = piece
             return
 
-        if all([step == self.EMPTY for step in self.state[piece_location + 1:piece_location + steps]]):
-            self.state[piece_location + steps] = piece
-            return
-
-        # TODO: check round
-
-        return False
+        if piece_location != self.LOC_OUT_BOARD:
+            self.state[piece_location] = self.EMPTY
+            if location != self.LOC_OUT_BOARD:
+                self.state[location] = piece
 
 
 class Home(Board):

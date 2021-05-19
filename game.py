@@ -4,9 +4,11 @@ from typing import List
 import numpy as np
 
 from board import Chessboard, Home
-from command import (Command, MoveCommand, MoveHomeCommand, PassCommand,
-                     ShowHelpCommand)
-from exception import (InvalidCommandException, UnknowCommandException, ViolatedRuleException)
+from command import (Command, CommandSequence, MoveCommand, MoveHomeCommand,
+                     PassCommand, ShowHelpCommand)
+from error import NoError
+from exception import (InvalidCommandException, UnknowCommandException,
+                       ViolatedRuleException)
 from objects import ConsolePlayer, Piece, Player
 
 
@@ -85,9 +87,15 @@ class Game:
                 print('Press "help" or "h" to show help')
             return
 
-        command.execute()
+        status = command.execute()
+        print('Status:', status)
+        if not isinstance(status, NoError):
+            command.undo()
 
-        self.current_player_index = self.current_player_index + 1
+        self.next_player()
+
+    def next_player(self):
+        self.current_player_index += 1
         if self.current_player_index == len(self.players):
             self.current_player_index = 0
 
@@ -104,34 +112,38 @@ class Game:
         raise ValueError()
 
     def parse_command(self, command_str: str) -> Command:
-        parts = command_str.split(' ')
-        command_key = parts[0]
+        def parse_single_command(cmd: str):
+            parts = cmd.split(' ')
+            command_key = parts[0]
 
-        if command_key == 'move':
-            try:
-                piece = self.piece_from_name(parts[1])
-            except ValueError:
-                raise InvalidCommandException(command_str)
+            if command_key == 'move':
+                try:
+                    piece = self.piece_from_name(parts[1])
+                except ValueError:
+                    raise InvalidCommandException(cmd)
 
-            steps = int(parts[2])
-            command = MoveCommand(self.chessboard, piece, steps)
-            return command
+                steps = int(parts[2])
+                command = MoveCommand(self.chessboard, piece, steps)
+                return command
 
-        if command_key == 'move-home':
-            piece,  = parts[1], int(parts[2])
-            command = MoveHomeCommand()
-            return command
+            if command_key == 'move-home':
+                piece,  = parts[1], int(parts[2])
+                command = MoveHomeCommand()
+                return command
 
-        if command_key == 'help' or command_key == 'h':
-            help_str = 'HELP!!!!!!!!!!!!!!'
-            command = ShowHelpCommand(help_str)
-            return command
+            if command_key == 'help' or command_key == 'h':
+                help_str = 'HELP!!!!!!!!!!!!!!'
+                command = ShowHelpCommand(help_str)
+                return command
 
-        if command_key == 'pass' or command_key == 'p':
-            command = PassCommand(self.players[self.current_player_index])
-            return command
+            if command_key == 'pass' or command_key == 'p':
+                command = PassCommand(self.players[self.current_player_index])
+                return command
 
-        raise UnknowCommandException(command_str)
+            raise UnknowCommandException(command_str)
+
+        commands = CommandSequence([parse_single_command(cmd) for cmd in command_str.split(';')])
+        return commands
 
 
 # define our clear function
