@@ -4,9 +4,9 @@ from typing import List
 import numpy as np
 
 from board import Chessboard, Home
-from command import (Command, InvalidCommandException, MoveCommand,
-                     MoveHomeCommand, PassCommand, ShowHelpCommand,
-                     UnknowCommandException)
+from command import (Command, MoveCommand, MoveHomeCommand, PassCommand,
+                     ShowHelpCommand)
+from exception import (InvalidCommandException, UnknowCommandException)
 from objects import ConsolePlayer, Piece, Player
 
 
