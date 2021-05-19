@@ -1,4 +1,5 @@
-from board import Board
+from exception import ViolatedRuleException
+from board import Chessboard
 from objects import Piece, Player
 
 
@@ -8,17 +9,21 @@ class Command:
 
 
 class MoveCommand(Command):
-    def __init__(self, board: Board, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
 
     def execute(self):
-        pass
+        if self.board.is_able_to_move(self.piece, self.steps):
+            self.board.move(self.piece, self.steps)
+            return
+
+        raise ViolatedRuleException(f'Could not move {self.piece.name} {self.steps} steps')
 
 
 class MoveHomeCommand(Command):
-    def __init__(self, board: Board, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
@@ -29,7 +34,7 @@ class MoveHomeCommand(Command):
 
 class PassCommand(Command):
     def __init__(self, player: Player) -> None:
-        super(PassCommand, player).__init__()
+        super(PassCommand, self).__init__()
         self.player = player
 
     def execute(self):

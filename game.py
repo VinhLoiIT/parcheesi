@@ -6,7 +6,7 @@ import numpy as np
 from board import Chessboard, Home
 from command import (Command, MoveCommand, MoveHomeCommand, PassCommand,
                      ShowHelpCommand)
-from exception import (InvalidCommandException, UnknowCommandException)
+from exception import (InvalidCommandException, UnknowCommandException, ViolatedRuleException)
 from objects import ConsolePlayer, Piece, Player
 
 
@@ -95,9 +95,12 @@ class Game:
         return np.random.randint(1, 7, size=2)
 
     def piece_from_name(self, name):
+        current_player = self.players[self.current_player_index]
         for piece in self.pieces:
             if piece.name == name:
-                return piece
+                if piece.player is current_player:
+                    return piece
+                raise ViolatedRuleException('Move a piece that is not yours')
         raise ValueError()
 
     def parse_command(self, command_str: str) -> Command:

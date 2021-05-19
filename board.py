@@ -22,7 +22,7 @@ class Chessboard(Board):
     def is_able_to_move(self, piece, steps):
         try:
             piece_location = self.state.index(piece)
-        except IndexError:
+        except ValueError:
             if steps == 6 or steps == 1:
                 return True
             return False
@@ -42,7 +42,7 @@ class Chessboard(Board):
     def move(self, piece: Piece, steps: int):
         try:
             piece_location = self.state.index(piece)
-        except IndexError:
+        except ValueError:
             if steps == 6 or steps == 1:
                 self.state[piece.player.offset] = piece
                 return
