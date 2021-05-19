@@ -128,7 +128,7 @@ class Game:
             return command
 
         if command_key == 'pass' or command_key == 'p':
-            command = PassCommand(self)
+            command = PassCommand(self.players[self.current_player_index])
             return command
 
         raise UnknowCommandException(command_str)
