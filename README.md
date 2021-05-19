@@ -7,4 +7,4 @@ Update later ;)
 # Development Progess
 - [] Provide a full gameplay with Console interface
 - [] Separate project into client-server architecture
-- [] Writing docs
+- [] Write docs
