@@ -20,7 +20,6 @@ class Game:
     MAX_NUM_PIECE_PER_PLAYER = 4
 
     def __init__(self) -> None:
-        self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.MAX_NUM_PLAYER)
         self.players: List[Player] = []
         self.homes: List[Home] = []
         self.pieces: List[Piece] = []
@@ -30,6 +29,7 @@ class Game:
             self.players.append(player)
             self.homes.append(Home())
             self.pieces.extend([Piece(player, f'{color[0]}{index}') for index in range(self.MAX_NUM_PIECE_PER_PLAYER)])
+        self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.MAX_NUM_PLAYER, self.players)
 
         self.current_player_index = 0
 

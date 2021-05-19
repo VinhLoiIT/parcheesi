@@ -1,4 +1,4 @@
-from objects import Piece
+from objects import Piece, Player
 
 
 class Board:
@@ -15,11 +15,23 @@ class Chessboard(Board):
 
     LOC_OUT_BOARD = -2
 
-    def __init__(self, player_lane_size: int, max_num_players: int) -> None:
+    def __init__(self, player_lane_size: int, max_num_players: int, players) -> None:
         self.state = [self.EMPTY] * (player_lane_size * max_num_players)
+        self.players = players
 
     def __repr__(self) -> str:
-        return ' '.join(['**' if step == self.EMPTY else str(step) for step in self.state])
+        steps = []
+        entrances = {self.home_entrance_location(player): player.name[0] for player in self.players}
+        for index, step in enumerate(self.state):
+            if step == self.EMPTY:
+                if index in entrances.keys():
+                    representation = f'{entrances[index]}H'
+                else:
+                    representation = '**'
+            else:
+                representation = str(step)
+            steps.append(representation)
+        return ' '.join(steps)
 
     def is_able_kickstart(self, player, steps: int):
         if steps == 6 or steps == 1:
@@ -46,6 +58,14 @@ class Chessboard(Board):
         # TODO: check round
 
         return False
+
+    def home_entrance_location(self, player: Player):
+        home_location = (player.offset + len(self.state) - 1) % len(self.state)
+        return home_location
+
+    def is_at_home_entrance(self, piece: Piece, location: int):
+        home_location = self.home_entrance_location(piece.player)
+        return home_location == location
 
     def location(self, piece: Piece):
         try:
