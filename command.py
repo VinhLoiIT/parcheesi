@@ -78,6 +78,7 @@ class PassCommand(Command):
 
     def execute(self):
         print(f'Player {self.player.name} passed.')
+        return NoError()
 
 
 class ShowHelpCommand(Command):
@@ -88,3 +89,4 @@ class ShowHelpCommand(Command):
     def execute(self):
         print(self.help_str)
         input('Press any key to continue.')
+        return NoError()
