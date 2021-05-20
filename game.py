@@ -55,42 +55,46 @@ class Game:
         print('Game Over!')
 
     def run(self):
-        if self.CLEAR_SCREEN_EACH_RUN:
-            _clear_screen()
-
-        print('-' * 10)
-        self.print_state()
-        print('-' * 10)
-
         dice_values = self.roll_dice()
         current_player = self.players[self.current_player_index]
 
-        print(f'Current player: {current_player.name}')
-        print('-' * 10)
-
-        command_str = current_player.turn(dice_values)
-
-        try:
-            command = self.parse_command(command_str)
-        except UnknowCommandException as e:
-            print(f'Unknow command: {e}')
+        while True:
             if self.CLEAR_SCREEN_EACH_RUN:
-                input('Press any key to continue')
-            else:
-                print('Press any key to continue')
-            return
-        except InvalidCommandException as e:
-            print(f'Invalid command {e}')
-            if self.CLEAR_SCREEN_EACH_RUN:
-                input('Press "help" or "h" to show help')
-            else:
-                print('Press "help" or "h" to show help')
-            return
+                _clear_screen()
 
-        status = command.execute()
-        print('Status:', status)
-        if not isinstance(status, NoError):
-            command.undo()
+            print('-' * 10)
+            self.print_state()
+            print('-' * 10)
+
+            print(f'Current player: {current_player.name}')
+            print('-' * 10)
+
+            command_str = current_player.turn(dice_values)
+
+            try:
+                command = self.parse_command(command_str)
+            except UnknowCommandException as e:
+                print(f'Unknow command: {e}')
+                if self.CLEAR_SCREEN_EACH_RUN:
+                    input('Press any key to continue')
+                else:
+                    print('Press any key to continue')
+                continue
+            except InvalidCommandException as e:
+                print(f'Invalid command {e}')
+                if self.CLEAR_SCREEN_EACH_RUN:
+                    input('Press "help" or "h" to show help')
+                else:
+                    print('Press "help" or "h" to show help')
+                continue
+
+            status = command.execute()
+            print('Status:', status)
+            if not isinstance(status, NoError):
+                command.undo()
+                continue
+
+            break
 
         self.next_player()
 
