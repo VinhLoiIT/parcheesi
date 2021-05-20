@@ -5,6 +5,6 @@ I would implement a client-server Parcheesi game which support API for calling v
 Update later ;)
 
 # Development Progess
-- [] Provide a full gameplay with Console interface
-- [] Separate project into client-server architecture
-- [] Write docs
+- [ ] Provide a full gameplay with Console interface
+- [ ] Separate project into client-server architecture
+- [ ] Write docs
