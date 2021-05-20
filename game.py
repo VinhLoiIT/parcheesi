@@ -18,16 +18,18 @@ class Game:
     PLAYER_LANE_SIZE = 14
     MAX_NUM_PLAYER = 4
     MAX_NUM_PIECE_PER_PLAYER = 4
+    COLORS = ['red', 'green', 'blue', 'yellow']
 
     def __init__(self) -> None:
         self.players: List[Player] = []
         self.homes: List[Home] = []
         self.pieces: List[Piece] = []
-        for i, color in enumerate(['red', 'green', 'blue', 'yellow']):
+        for i, color in enumerate(self.COLORS[:self.MAX_NUM_PLAYER]):
             offset = i * self.PLAYER_LANE_SIZE
-            player = ConsolePlayer(color, offset)
+            home = Home()
+            player = ConsolePlayer(color, offset, home)
             self.players.append(player)
-            self.homes.append(Home())
+            self.homes.append(home)
             self.pieces.extend([Piece(player, f'{color[0]}{index}') for index in range(self.MAX_NUM_PIECE_PER_PLAYER)])
         self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.MAX_NUM_PLAYER, self.players)
 
@@ -36,7 +38,7 @@ class Game:
     def print_state(self):
         # TODO: move to a Printer class which could be derived later.
         chessboard = str(self.chessboard)
-        homes = list(zip(*[str(home).split(' ') for home in self.homes]))
+        homes = list(zip(*[str(home).split(' ') for home in self.homes[1:] + [self.homes[0]]]))
         print(chessboard)
         spaces = '  ' * (self.PLAYER_LANE_SIZE - 1) + ' ' * self.PLAYER_LANE_SIZE
         for home in homes:
@@ -131,8 +133,14 @@ class Game:
                 return command
 
             if command_key == 'move-home':
-                piece,  = parts[1], int(parts[2])
-                command = MoveHomeCommand()
+                try:
+                    piece = self.piece_from_name(parts[1])
+                except ValueError:
+                    raise InvalidCommandException(cmd)
+
+                steps = int(parts[2])
+                player = self.players[self.current_player_index]
+                command = MoveHomeCommand(self.chessboard, player.home, piece, steps)
                 return command
 
             if command_key == 'help' or command_key == 'h':

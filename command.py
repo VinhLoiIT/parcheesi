@@ -1,6 +1,6 @@
 from error import CannotMoveError, NoError, Status
 from typing import Iterable
-from board import Chessboard
+from board import Chessboard, Home
 from objects import Piece, Player
 
 
@@ -62,13 +62,63 @@ class MoveCommand(Command):
 
 
 class MoveHomeCommand(Command):
-    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, home: Home, piece: Piece, steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
+        self.home = home
+
+    def is_able_to_move(self, entrance_location, home_location, board_location):
+        entrance_location = self.board.home_entrance_location(self.piece.player)
+        home_location = self.home.location(self.piece)
+        board_location = self.board.location(self.piece)
+        if board_location == entrance_location:
+            if all([step == self.home.EMPTY for step in self.home.state[:self.steps]]):
+                return True
+            return False
+
+        if home_location != self.home.LOC_OUT_BOARD:
+            if self.home.state[self.steps - 1] == self.home.EMPTY and home_location == self.steps - 2:
+                return True
+            return False
+
+        return False
 
     def execute(self):
-        pass
+        entrance_location = self.board.home_entrance_location(self.piece.player)
+        home_location = self.home.location(self.piece)
+        board_location = self.board.location(self.piece)
+
+        self.old_home_location = home_location
+        self.old_board_location = board_location
+
+        if not self.is_able_to_move(entrance_location, home_location, board_location):
+            return CannotMoveError(self.piece.name, self.steps)
+
+        if board_location == entrance_location:
+            if all([step == self.home.EMPTY for step in self.home.state[:self.steps]]):
+                self.board.state[entrance_location] = self.board.EMPTY
+                self.home.state[self.steps - 1] = self.piece
+                return NoError()
+
+        if home_location != self.home.LOC_OUT_BOARD:
+            if self.home.state[self.steps - 1] == self.home.EMPTY and home_location == self.steps - 2:
+                self.home.state[home_location] = self.home.EMPTY
+                self.home.state[self.steps - 1] = self.piece
+                return NoError()
+
+        return CannotMoveError(self.piece.name, self.steps)
+
+    def undo(self):
+        entrance_location = self.board.home_entrance_location(self.piece.player)
+
+        if self.old_board_location == entrance_location:
+            self.board.state[entrance_location] = self.piece
+            self.home.state[self.steps - 1] = self.home.EMPTY
+
+        if self.old_home_location != self.home.LOC_OUT_BOARD:
+            self.home.state[self.old_home_location] = self.piece
+            self.home.state[self.steps - 1] = self.home.EMPTY
 
 
 class PassCommand(Command):

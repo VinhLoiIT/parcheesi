@@ -13,6 +13,10 @@ class Player:
 
 class ConsolePlayer(Player):
 
+    def __init__(self, name: str, offset: int, home) -> None:
+        super().__init__(name, offset)
+        self.home = home
+
     def turn(self, dice_values):
         print('Dices:', dice_values)
         while True:

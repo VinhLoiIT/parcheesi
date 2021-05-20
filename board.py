@@ -3,17 +3,10 @@ from objects import Piece, Player
 
 class Board:
     EMPTY = -1
-
-    def is_able_to_move(self):
-        raise NotImplementedError()
-
-    def set_location(self, piece: Piece, location: int):
-        raise NotImplementedError()
+    LOC_OUT_BOARD = -2
 
 
 class Chessboard(Board):
-
-    LOC_OUT_BOARD = -2
 
     def __init__(self, player_lane_size: int, max_num_players: int, players) -> None:
         self.state = [self.EMPTY] * (player_lane_size * max_num_players)
@@ -77,7 +70,9 @@ class Chessboard(Board):
         piece_location = self.location(piece)
 
         if piece_location == self.LOC_OUT_BOARD:
-            return self.is_able_kickstart(piece.player, steps)
+            if piece.player.home.location(piece) == piece.player.home.EMPTY:
+                return self.is_able_kickstart(piece.player, steps)
+            return False
 
         if self.is_pass_home_entrance(piece, steps):
             return False
@@ -123,38 +118,8 @@ class Home(Board):
     def __repr__(self) -> str:
         return ' '.join(['**' if step == self.EMPTY else str(step) for step in self.state])
 
-    def is_able_to_move(self, piece, steps):
+    def location(self, piece: Piece):
         try:
-            piece_location = self.state.index(piece)
-        except IndexError:
-            return False
-
-        new_location = piece_location + steps
-
-        if not 1 <= new_location <= 6:
-            return False
-
-        if all([step == self.EMPTY for step in self.state[piece_location + 1:new_location]]):
-            return True
-
-        return False
-
-    def move(self, piece: Piece, steps: int):
-        try:
-            piece_location = self.state.index(piece)
-        except IndexError:
-            raise ValueError()
-
-        new_location = piece_location + steps
-
-        if piece_location == 0 and all([step == self.EMPTY for step in self.state[piece_location + 1:new_location]]):
-            self.state[piece_location] = self.EMPTY
-            self.state[new_location] = piece
-            return
-
-        if piece_location > 0:
-            if steps == piece_location + 1 and self.state[piece_location + 1] == self.EMPTY:
-                self.state[piece_location] = self.EMPTY
-                self.state[new_location] = piece
-
-        raise ValueError()
+            return self.state.index(piece)
+        except ValueError:
+            return self.LOC_OUT_BOARD
