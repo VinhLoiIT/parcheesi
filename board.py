@@ -1,4 +1,4 @@
-from objects import Piece, Player
+from piece import Piece
 
 
 class Board:
@@ -8,13 +8,11 @@ class Board:
 
 class Chessboard(Board):
 
-    def __init__(self, player_lane_size: int, max_num_players: int, players, homes) -> None:
-        self.state = [self.EMPTY] * (player_lane_size * max_num_players)
+    def __init__(self, player_lane_size: int, players) -> None:
+        self.state = [self.EMPTY] * (player_lane_size * len(players))
         self.players = players
-        self.homes = {player: home for player, home in zip(players, homes)}
         self.offset = {player: i * player_lane_size for i, player in enumerate(players)}
         self.player_lane_size = player_lane_size
-        self.max_num_players = max_num_players
 
     def __repr__(self) -> str:
         steps = []
@@ -72,7 +70,7 @@ class Chessboard(Board):
             return clear_mid and not same_player
 
         piece_location = self.location(piece)
-        home_location = self.homes[piece.player].location(piece)
+        home_location = piece.player.home.location(piece)
 
         if piece_location == self.LOC_OUT_BOARD:
             if home_location == Home.LOC_OUT_BOARD:
@@ -87,7 +85,7 @@ class Chessboard(Board):
 
         return is_clear_forward(piece_location, piece.player, steps)
 
-    def home_entrance_location(self, player: Player):
+    def home_entrance_location(self, player):
         home_location = (self.offset[player] + len(self.state) - 1) % len(self.state)
         return home_location
 

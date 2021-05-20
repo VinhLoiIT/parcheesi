@@ -1,53 +1,36 @@
-from os import name, system
-from typing import List
-
-import numpy as np
-
-from board import Chessboard, Home
-from command import (Command, CommandSequence, MoveCommand, MoveHomeCommand,
-                     PassCommand, ShowHelpCommand)
-from error import NoError
-from exception import (InvalidCommandException, UnknowCommandException,
-                       ViolatedRuleException)
-from objects import ConsolePlayer, Piece, Player
+from typing import List, Optional
+from player import ConsolePlayer, Player
+from gamestate import GameState
 
 
 class Game:
 
-    CLEAR_SCREEN_EACH_RUN = False
-    PLAYER_LANE_SIZE = 14
-    MAX_NUM_PLAYER = 4
-    MAX_NUM_PIECE_PER_PLAYER = 4
-    COLORS = ['red', 'green', 'blue', 'yellow']
-
     def __init__(self) -> None:
+        self.state: Optional[GameState] = None
         self.players: List[Player] = []
-        self.homes: List[Home] = []
-        self.pieces: List[Piece] = []
-        for color in self.COLORS[:self.MAX_NUM_PLAYER]:
-            home = Home()
-            player = ConsolePlayer(color)
-            self.players.append(player)
-            self.homes.append(home)
-            self.pieces.extend([Piece(player, f'{color[0]}{index}') for index in range(self.MAX_NUM_PIECE_PER_PLAYER)])
-        self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.MAX_NUM_PLAYER, self.players, self.homes)
 
-        self.current_player_index = 0
+    def wait_for_players(self):
+        # TODO: implement with sockets
+        # TODO: psuedo players for early development
+        p1 = ConsolePlayer('red')
+        self.players.append(p1)
+        p2 = ConsolePlayer('green')
+        self.players.append(p2)
+        # p3 = ConsolePlayer('blue')
+        # self.players.append(p3)
+        # p4 = ConsolePlayer('yellow')
+        # self.players.append(p4)
 
-    def print_state(self):
-        # TODO: move to a Printer class which could be derived later.
-        chessboard = str(self.chessboard)
-        homes = list(zip(*[str(home).split(' ') for home in self.homes[1:] + [self.homes[0]]]))
-        print(chessboard)
-        spaces = '  ' * (self.PLAYER_LANE_SIZE - 1) + ' ' * self.PLAYER_LANE_SIZE
-        for home in homes:
-            home_str = spaces[:-1] + spaces.join(home)
-            print(home_str)
+    def start(self):
+        self.state = GameState()
+        for player in self.players:
+            self.state.add_player(player)
+        self.state.start()
 
     def run_loop(self):
         while True:
             try:
-                self.run()
+                self.state.update()
             except KeyboardInterrupt:
                 ans = input('Are you sure want to quit? [y/n]: ')
                 if ans.upper() == 'Y':
@@ -55,118 +38,9 @@ class Game:
 
         print('Game Over!')
 
-    def run(self):
-        dice_values = self.roll_dice()
-        current_player = self.players[self.current_player_index]
-
-        while True:
-            if self.CLEAR_SCREEN_EACH_RUN:
-                _clear_screen()
-
-            print('-' * 10)
-            self.print_state()
-            print('-' * 10)
-
-            print(f'Current player: {current_player.name}')
-            print('-' * 10)
-
-            command_str = current_player.turn(dice_values)
-
-            try:
-                command = self.parse_command(command_str)
-            except UnknowCommandException as e:
-                print(f'Unknow command: {e}')
-                if self.CLEAR_SCREEN_EACH_RUN:
-                    input('Press any key to continue')
-                else:
-                    print('Press any key to continue')
-                continue
-            except InvalidCommandException as e:
-                print(f'Invalid command {e}')
-                if self.CLEAR_SCREEN_EACH_RUN:
-                    input('Press "help" or "h" to show help')
-                else:
-                    print('Press "help" or "h" to show help')
-                continue
-
-            status = command.execute()
-            print('Status:', status)
-            if not isinstance(status, NoError):
-                command.undo()
-                continue
-
-            break
-
-        self.next_player()
-
-    def next_player(self):
-        self.current_player_index += 1
-        if self.current_player_index == len(self.players):
-            self.current_player_index = 0
-
-    def roll_dice(self):
-        return np.random.randint(1, 7, size=2)
-
-    def piece_from_name(self, name):
-        current_player = self.players[self.current_player_index]
-        for piece in self.pieces:
-            if piece.name == name:
-                if piece.player is current_player:
-                    return piece
-                raise ViolatedRuleException('Move a piece that is not yours')
-        raise ValueError()
-
-    def parse_command(self, command_str: str) -> Command:
-        def parse_single_command(cmd: str):
-            parts = cmd.split(' ')
-            command_key = parts[0]
-
-            if command_key == 'move':
-                try:
-                    piece = self.piece_from_name(parts[1])
-                except ValueError:
-                    raise InvalidCommandException(cmd)
-
-                steps = int(parts[2])
-                command = MoveCommand(self.chessboard, piece, steps)
-                return command
-
-            if command_key == 'move-home':
-                try:
-                    piece = self.piece_from_name(parts[1])
-                except ValueError:
-                    raise InvalidCommandException(cmd)
-
-                steps = int(parts[2])
-                command = MoveHomeCommand(self.chessboard, piece, steps)
-                return command
-
-            if command_key == 'help' or command_key == 'h':
-                help_str = 'HELP!!!!!!!!!!!!!!'
-                command = ShowHelpCommand(help_str)
-                return command
-
-            if command_key == 'pass' or command_key == 'p':
-                command = PassCommand(self.players[self.current_player_index])
-                return command
-
-            raise UnknowCommandException(command_str)
-
-        commands = CommandSequence([parse_single_command(cmd) for cmd in command_str.split(';')])
-        return commands
-
-
-# define our clear function
-def _clear_screen():
-    # for windows
-    if name == 'nt':
-        _ = system('cls')
-
-    # for mac and linux(here, os.name is 'posix')
-    else:
-        _ = system('clear')
-
 
 if __name__ == '__main__':
     game = Game()
+    game.wait_for_players()
+    game.start()
     game.run_loop()

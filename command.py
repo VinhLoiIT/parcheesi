@@ -1,7 +1,10 @@
 from error import CannotMoveError, NoError, Status
 from typing import Iterable
-from board import Chessboard, Home
-from objects import Piece, Player
+from board import Chessboard
+from gamestate import GameState
+import re
+from exception import InvalidCommandException
+from piece import Piece
 
 
 class Command:
@@ -122,7 +125,7 @@ class MoveHomeCommand(Command):
 
 
 class PassCommand(Command):
-    def __init__(self, player: Player) -> None:
+    def __init__(self, player) -> None:
         super(PassCommand, self).__init__()
         self.player = player
 
@@ -140,3 +143,48 @@ class ShowHelpCommand(Command):
         print(self.help_str)
         input('Press any key to continue.')
         return NoError()
+
+
+class CommandFactory:
+
+    @staticmethod
+    def parse(player, gamestate: GameState, command_str: str):
+        def norm(cmd_str: str):
+            cmd_str = re.sub(' +', ' ', cmd_str.strip())
+            return cmd_str
+
+        def piece_from_index(player, index: int):
+            for piece in player.pieces:
+                if piece.index == index:
+                    return piece
+            raise InvalidCommandException(command_str)
+
+        def parse_single_command(cmd: str):
+            parts = cmd.split(' ')
+            command_key = parts[0]
+
+            if command_key == 'move':
+                piece = piece_from_index(player, int(parts[1]))
+                steps = int(parts[2])
+                command = MoveCommand(gamestate.chessboard, piece, steps)
+                return command
+
+            if command_key == 'move-home':
+                piece = piece_from_index(player, int(parts[1]))
+                steps = int(parts[2])
+                command = MoveHomeCommand(gamestate.chessboard, piece, steps)
+                return command
+
+            if command_key == 'help' or command_key == 'h':
+                help_str = 'HELP!!!!!!!!!!!!!!'
+                command = ShowHelpCommand(help_str)
+                return command
+
+            if command_key == 'pass' or command_key == 'p':
+                command = PassCommand(player)
+                return command
+
+            raise InvalidCommandException(command_str)
+
+        commands = CommandSequence([parse_single_command(norm(cmd)) for cmd in command_str.split(';')])
+        return commands
