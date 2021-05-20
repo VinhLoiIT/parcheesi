@@ -40,7 +40,7 @@ class MoveCommand(Command):
 
         piece_location = self.board.location(self.piece)
         if piece_location == self.board.LOC_OUT_BOARD:
-            new_location = self.piece.player.offset
+            new_location = self.board.offset[self.piece.player]
         elif piece_location + self.steps + 1 > len(self.board.state):
             new_location = (piece_location + self.steps) % len(self.board.state)
         elif piece_location + self.steps < 0:
@@ -62,11 +62,11 @@ class MoveCommand(Command):
 
 
 class MoveHomeCommand(Command):
-    def __init__(self, board: Chessboard, home: Home, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
-        self.home = home
+        self.home = board.homes[piece.player]
 
     def is_able_to_move(self, entrance_location, home_location, board_location):
         entrance_location = self.board.home_entrance_location(self.piece.player)

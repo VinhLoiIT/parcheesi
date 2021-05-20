@@ -3,19 +3,14 @@ import re
 
 class Player:
 
-    def __init__(self, name: str, offset: int) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.offset = offset
 
     def turn(self, dice_values):
         raise NotImplementedError()
 
 
 class ConsolePlayer(Player):
-
-    def __init__(self, name: str, offset: int, home) -> None:
-        super().__init__(name, offset)
-        self.home = home
 
     def turn(self, dice_values):
         print('Dices:', dice_values)
@@ -26,6 +21,15 @@ class ConsolePlayer(Player):
                 continue
 
             return command_str
+
+
+class SocketIOPlayer(Player):
+    def __init__(self, name: str, sid) -> None:
+        super().__init__(name)
+        self.sid = sid
+
+    def turn(self, dice_values):
+        pass
 
 
 class Piece:

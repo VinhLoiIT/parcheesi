@@ -8,9 +8,11 @@ class Board:
 
 class Chessboard(Board):
 
-    def __init__(self, player_lane_size: int, max_num_players: int, players) -> None:
+    def __init__(self, player_lane_size: int, max_num_players: int, players, homes) -> None:
         self.state = [self.EMPTY] * (player_lane_size * max_num_players)
         self.players = players
+        self.homes = {player: home for player, home in zip(players, homes)}
+        self.offset = {player: i * player_lane_size for i, player in enumerate(players)}
         self.player_lane_size = player_lane_size
         self.max_num_players = max_num_players
 
@@ -30,25 +32,27 @@ class Chessboard(Board):
         return ' '.join(steps)
 
     def is_able_kickstart(self, player, steps: int):
+        player_offset = self.offset[player]
         if steps == 6 or steps == 1:
-            if self.state[player.offset] == self.EMPTY:
+            if self.state[player_offset] == self.EMPTY:
                 return True
-            if self.state[player.offset].player != player:
+            if self.state[player_offset].player != player:
                 return True
         return False
 
     def is_pass_home_entrance(self, piece: Piece, steps: int):
         home_location = self.home_entrance_location(piece.player)
         piece_location = self.location(piece)
+        player_offset = self.offset[piece.player]
 
         # Norm piece location to 0->len(state)
-        if piece_location < piece.player.offset:
-            piece_location += piece.player.offset
+        if piece_location < player_offset:
+            piece_location += player_offset
         else:
-            piece_location -= piece.player.offset
+            piece_location -= player_offset
 
-        if piece.player.offset > home_location:
-            home_location += len(self.state) - piece.player.offset
+        if player_offset > home_location:
+            home_location += len(self.state) - player_offset
 
         return piece_location + steps > home_location
 
@@ -68,9 +72,10 @@ class Chessboard(Board):
             return clear_mid and not same_player
 
         piece_location = self.location(piece)
+        home_location = self.homes[piece.player].location(piece)
 
         if piece_location == self.LOC_OUT_BOARD:
-            if piece.player.home.location(piece) == piece.player.home.EMPTY:
+            if home_location == Home.LOC_OUT_BOARD:
                 return self.is_able_kickstart(piece.player, steps)
             return False
 
@@ -83,7 +88,7 @@ class Chessboard(Board):
         return is_clear_forward(piece_location, piece.player, steps)
 
     def home_entrance_location(self, player: Player):
-        home_location = (player.offset + len(self.state) - 1) % len(self.state)
+        home_location = (self.offset[player] + len(self.state) - 1) % len(self.state)
         return home_location
 
     def is_at_home_entrance(self, piece: Piece, location: int):
