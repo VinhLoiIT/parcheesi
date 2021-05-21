@@ -99,7 +99,7 @@ class MoveHomeCommand(Command):
             return CannotMoveError(self.piece.name, self.steps)
 
         if board_location == entrance_location:
-            if all([step == self.home.EMPTY for step in self.home.state[:self.steps]]):
+            if all([isinstance(step, EmptyPiece) for step in self.home.state[:self.steps]]):
                 self.board.state[entrance_location] = EmptyPiece()
                 self.home.state[self.steps - 1] = self.piece
                 return NoError()

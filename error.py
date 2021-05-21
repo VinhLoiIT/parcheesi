@@ -20,3 +20,13 @@ class CannotMoveError(Status):
 
     def __str__(self) -> str:
         return self.desc
+
+
+class InvalidDiceError(Status):
+    code = -2
+
+    def __init__(self, dice_value, correct_values) -> None:
+        self.desc = f'Could not move {dice_value} steps. Available steps = {correct_values}'
+
+    def __str__(self) -> str:
+        return self.desc
