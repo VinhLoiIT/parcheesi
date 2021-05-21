@@ -4,7 +4,7 @@ from board import Chessboard
 from gamestate import GameState
 import re
 from exception import InvalidCommandException
-from piece import Piece
+from piece import EmptyPiece, Piece
 
 
 class Command:
@@ -76,12 +76,12 @@ class MoveHomeCommand(Command):
         home_location = self.home.location(self.piece)
         board_location = self.board.location(self.piece)
         if board_location == entrance_location:
-            if all([step == self.home.EMPTY for step in self.home.state[:self.steps]]):
+            if all([isinstance(step, EmptyPiece) for step in self.home.state[:self.steps]]):
                 return True
             return False
 
         if home_location != self.home.LOC_OUT_BOARD:
-            if self.home.state[self.steps - 1] == self.home.EMPTY and home_location == self.steps - 2:
+            if isinstance(self.home.state[self.steps - 1], EmptyPiece) and home_location == self.steps - 2:
                 return True
             return False
 
@@ -100,13 +100,13 @@ class MoveHomeCommand(Command):
 
         if board_location == entrance_location:
             if all([step == self.home.EMPTY for step in self.home.state[:self.steps]]):
-                self.board.state[entrance_location] = self.board.EMPTY
+                self.board.state[entrance_location] = EmptyPiece()
                 self.home.state[self.steps - 1] = self.piece
                 return NoError()
 
         if home_location != self.home.LOC_OUT_BOARD:
-            if self.home.state[self.steps - 1] == self.home.EMPTY and home_location == self.steps - 2:
-                self.home.state[home_location] = self.home.EMPTY
+            if isinstance(self.home.state[self.steps - 1], EmptyPiece) and home_location == self.steps - 2:
+                self.home.state[home_location] = EmptyPiece()
                 self.home.state[self.steps - 1] = self.piece
                 return NoError()
 
@@ -117,11 +117,11 @@ class MoveHomeCommand(Command):
 
         if self.old_board_location == entrance_location:
             self.board.state[entrance_location] = self.piece
-            self.home.state[self.steps - 1] = self.home.EMPTY
+            self.home.state[self.steps - 1] = EmptyPiece()
 
         if self.old_home_location != self.home.LOC_OUT_BOARD:
             self.home.state[self.old_home_location] = self.piece
-            self.home.state[self.steps - 1] = self.home.EMPTY
+            self.home.state[self.steps - 1] = EmptyPiece()
 
 
 class PassCommand(Command):
