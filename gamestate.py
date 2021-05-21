@@ -33,31 +33,37 @@ class GameState:
         except ValueError:
             return
 
+    def is_done(self):
+        for player in self.players:
+            if player.home.is_finished():
+                return True
+        return False
+
     def roll_dice(self):
-        return np.random.randint(1, 7, size=2)
+        self.current_dices = np.random.randint(1, 7, size=2).tolist()
 
-    def update(self):
-        self.current_dices = self.roll_dice()
+    def send_turn(self):
         current_player = self.players[self.current_player_index]
+        self.printer.print(self)
+        current_player.take_turn(self)
 
-        while True:
-            self.printer.print(self)
-            command = current_player.turn(self)
-
-            status = command.execute()
-            print('Status:', status)
-            if not isinstance(status, NoError):
-                command.undo()
-                continue
-
-            break
-
-        self.next_player()
+    def receive_command(self, command):
+        status = command.execute()
+        print('Status:', status)
+        if not isinstance(status, NoError):
+            command.undo()
+        return status
 
     def next_player(self):
         self.current_player_index += 1
         if self.current_player_index == len(self.players):
             self.current_player_index = 0
+
+    def to_dict(self):
+        out = {}
+        out['dice_values'] = self.current_dices
+        out['state'] = self.chessboard.to_dict()
+        return out
 
 
 class GameStatePrinter:

@@ -1,32 +1,37 @@
 class Status:
-    pass
+    def __init__(self, code, desc):
+        self.code = code
+        self.desc = desc
+
+    def __str__(self) -> str:
+        return f'{self.code}: {self.desc}'
 
 
 class NoError(Status):
-    code = 0
 
     def __init__(self) -> None:
-        self.desc = 'OK'
-
-    def __str__(self) -> str:
-        return self.desc
+        super().__init__(0, 'OK')
 
 
 class CannotMoveError(Status):
-    code = -1
 
     def __init__(self, piece_name, steps) -> None:
-        self.desc = f'Could not move {piece_name} {steps} steps'
-
-    def __str__(self) -> str:
-        return self.desc
+        code = -1
+        desc = f'Could not move {piece_name} {steps} steps'
+        super().__init__(code, desc)
 
 
 class InvalidDiceError(Status):
-    code = -2
 
     def __init__(self, dice_value, correct_values) -> None:
-        self.desc = f'Could not move {dice_value} steps. Available steps = {correct_values}'
+        code = -2
+        desc = f'Could not move {dice_value} steps. Available steps = {correct_values}'
+        super().__init__(code, desc)
 
-    def __str__(self) -> str:
-        return self.desc
+
+class InvalidCommandError(Status):
+
+    def __init__(self, command_str) -> None:
+        code = -3
+        desc = f'Invalid command "{command_str}"'
+        super().__init__(code, desc)

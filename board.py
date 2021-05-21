@@ -5,6 +5,9 @@ from piece import EmptyPiece, Piece
 class Board:
     LOC_OUT_BOARD = -2
 
+    def to_dict(self):
+        pass
+
 
 class Chessboard(Board):
 
@@ -103,6 +106,17 @@ class Chessboard(Board):
             if location != self.LOC_OUT_BOARD:
                 self.state[location] = piece
 
+    def to_dict(self):
+        output = {}
+        output['homes'] = {
+            player.name: player.home.to_dict() for player in self.players
+        }
+        output['board'] = [state.index if isinstance(state, Piece) else state for state in self.state]
+        output['metadata'] = {
+            'LANE_SIZE': self.player_lane_size
+        }
+        return output
+
 
 class Home(Board):
 
@@ -118,3 +132,11 @@ class Home(Board):
             return self.state.index(piece)
         except ValueError:
             return self.LOC_OUT_BOARD
+
+    def is_finished(self):
+        if any([isinstance(step, EmptyPiece) for step in self.state[-4:]]):
+            return False
+        return True
+
+    def to_dict(self):
+        return [state.index if isinstance(state, Piece) else state for state in self.state]

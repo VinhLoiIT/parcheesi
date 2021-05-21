@@ -1,6 +1,7 @@
+from socketio.server import Server
 from exception import InvalidCommandException
 from gamestate import GameState
-from command import Command, CommandFactory
+from command import Command, CommandFactory, PassCommand
 import re
 
 from board import Home
@@ -15,14 +16,21 @@ class Player:
         self.name = name
         self.pieces = [Piece(self, i) for i in range(self.MAX_NUM_PIECE)]
         self.home: Home = Home()
+        self.is_disconnected = False
 
-    def turn(self, gamestate: GameState) -> Command:
+    def set_disconnected(self, is_disconnected: bool):
+        self.is_disconnected = is_disconnected
+
+    def take_turn(self, gamestate: GameState) -> Command:
         raise NotImplementedError()
 
 
 class ConsolePlayer(Player):
 
-    def turn(self, gamestate: GameState):
+    def take_turn(self, gamestate: GameState):
+        if self.is_disconnected:
+            return PassCommand(self)
+
         print('Dices:', gamestate.current_dices)
 
         while True:
@@ -37,4 +45,16 @@ class ConsolePlayer(Player):
                 print(f'Unknow command: {e}')
                 continue
 
-            return command
+            gamestate.receive_command(command)
+
+
+class SocketIOPlayer(Player):
+    def __init__(self, name: str, sio, sid) -> None:
+        super().__init__(name)
+        self.sid = sid
+        self.sio: Server = sio
+
+    def take_turn(self, gamestate: GameState) -> Command:
+        data = gamestate.to_dict()
+        print(data)
+        self.sio.emit('turn', data=data, room=self.sid)
