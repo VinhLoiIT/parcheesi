@@ -2,7 +2,7 @@ from os import name, system
 import numpy as np
 from board import Chessboard
 from typing import Optional
-from error import NoError
+from error import InvalidTurnError, NoError
 
 
 class GameState:
@@ -20,8 +20,12 @@ class GameState:
         self.current_dices = None
         self.chessboard: Optional[Chessboard] = None
 
-    def start(self):
+    def start(self, players):
+        for player in players:
+            self.add_player(player)
         self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.players)
+        self._roll_dice()
+        self.send_turn()
 
     def add_player(self, player):
         if player not in self.players:
@@ -39,25 +43,34 @@ class GameState:
                 return True
         return False
 
-    def roll_dice(self):
+    def _roll_dice(self):
         self.current_dices = np.random.randint(1, 7, size=2).tolist()
 
     def send_turn(self):
-        current_player = self.players[self.current_player_index]
         self.printer.print(self)
-        current_player.take_turn(self)
+        self.current_player().take_turn(self)
 
-    def receive_command(self, command):
+    def current_player(self):
+        return self.players[self.current_player_index]
+
+    def receive_command(self, player, command):
+        print(self.current_player().name, ' - ', player.name, ' - command:', command)
+        if player != self.current_player():
+            print('Invalid Turn Error')
+            return InvalidTurnError()
+
         status = command.execute()
         print('Status:', status)
         if not isinstance(status, NoError):
             command.undo()
         return status
 
-    def next_player(self):
+    def next_turn(self):
+        self._roll_dice()
         self.current_player_index += 1
         if self.current_player_index == len(self.players):
             self.current_player_index = 0
+        self.send_turn()
 
     def to_dict(self):
         out = {}

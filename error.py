@@ -35,3 +35,27 @@ class InvalidCommandError(Status):
         code = -3
         desc = f'Invalid command "{command_str}"'
         super().__init__(code, desc)
+
+
+class InvalidTurnError(Status):
+
+    def __init__(self) -> None:
+        code = -4
+        desc = 'This is not your turn'
+        super().__init__(code, desc)
+
+
+class IsPlayingError(Status):
+
+    def __init__(self) -> None:
+        code = -5
+        desc = 'Game is current playing'
+        super().__init__(code, desc)
+
+
+class IsInRoomError(Status):
+
+    def __init__(self, room_name) -> None:
+        code = -6
+        desc = f'You are already in room "{room_name}"'
+        super().__init__(code, desc)

@@ -1,3 +1,4 @@
+from error import Status
 from socketio.server import Server
 from exception import InvalidCommandException
 from gamestate import GameState
@@ -22,6 +23,9 @@ class Player:
         self.is_disconnected = is_disconnected
 
     def take_turn(self, gamestate: GameState) -> Command:
+        raise NotImplementedError()
+
+    def receive_status(self, status: Status):
         raise NotImplementedError()
 
 
