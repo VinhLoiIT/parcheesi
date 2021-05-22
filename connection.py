@@ -62,8 +62,10 @@ class SocketGameConnection(GameConnection):
         print('disconnect ', sid)
         session = self.sio.get_session(sid)
         instance = session['instance']
-        # game.player_leave(instance)
-        print('TODO: remove player!!!')
+        room_name = session['room_name']
+        self._players.remove(instance)
+        if room_name is not None:
+            GameRoomDB.leave(instance, room_name)
 
     def list_room(self, sid):
         data = list(GameRoomDB.rooms.keys())
@@ -99,10 +101,7 @@ class SocketGameConnection(GameConnection):
         if joined_room is None:
             return -1, 'Not in a room'
 
-        room = GameRoomDB.rooms[joined_room]
-        room.leave(player)
-        if room.empty():
-            GameRoomDB.rooms.pop(session['room_name'])
+        GameRoomDB.leave(player, joined_room)
 
         session['room_name'] = None
 
