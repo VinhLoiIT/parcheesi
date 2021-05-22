@@ -6,6 +6,12 @@ class Status:
     def __str__(self) -> str:
         return f'{self.code}: {self.desc}'
 
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __bool__(self) -> bool:
+        return self.code == 0
+
 
 class NoError(Status):
 
