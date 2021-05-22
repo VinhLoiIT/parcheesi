@@ -21,23 +21,15 @@ class GameState:
         self.chessboard: Optional[Chessboard] = None
 
     def start(self, players):
-        for player in players:
-            self.add_player(player)
+        self.players = players
         self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.players)
         self._roll_dice()
         self.send_turn()
 
-    def add_player(self, player):
-        if player not in self.players:
-            self.players.append(player)
-
-    def remove_player(self, player):
-        try:
-            self.players.remove(player)
-        except ValueError:
-            return
-
     def is_done(self):
+        if len(self.players) == 1:
+            return True
+
         for player in self.players:
             if player.home.is_finished():
                 return True
