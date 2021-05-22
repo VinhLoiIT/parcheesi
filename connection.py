@@ -101,10 +101,10 @@ class SocketGameConnection(GameConnection):
 
         room = GameRoomDB.rooms[joined_room]
         room.leave(player)
-        session['room_name'] = None
-
         if room.empty():
-            GameRoomDB.rooms.pop(room)
+            GameRoomDB.rooms.pop(session['room_name'])
+
+        session['room_name'] = None
 
         status = NoError()
         return status.code, status.desc
