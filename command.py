@@ -1,10 +1,11 @@
 from error import CannotMoveError, NoError, Status
-from typing import Iterable
+from typing import Iterable, List
 from board import Chessboard
 from gamestate import GameState
 import re
 from exception import InvalidCommandException
 from piece import EmptyPiece, Piece
+from copy import deepcopy
 
 
 class Command:
@@ -34,12 +35,16 @@ class CommandSequence(Command):
 
 
 class MoveCommand(Command):
-    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, piece: Piece, dices: List[int], steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
+        self.dices = dices
 
     def execute(self):
+
+        if self.steps not in self.dices:
+            return CannotMoveError(self.piece.name, self.steps)
 
         piece_location = self.board.location(self.piece)
         if piece_location == self.board.LOC_OUT_BOARD:
@@ -58,17 +63,21 @@ class MoveCommand(Command):
             return CannotMoveError(self.piece.name, self.steps)
 
         self.board.set_location(self.piece, self.new_location)
+        self.index = self.dices.index(self.steps)
+        self.dices.pop(self.index)
         return NoError()
 
     def undo(self):
         self.board.set_location(self.piece, self.old_location)
+        self.dices.insert(self.index, self.steps)
 
 
 class MoveHomeCommand(Command):
-    def __init__(self, board: Chessboard, piece: Piece, steps: int) -> None:
+    def __init__(self, board: Chessboard, piece: Piece, dices: List[int], steps: int) -> None:
         self.board = board
         self.piece = piece
         self.steps = steps
+        self.dices = dices
         self.home = board.homes[piece.player]
 
     def is_able_to_move(self, entrance_location, home_location, board_location):
@@ -88,6 +97,10 @@ class MoveHomeCommand(Command):
         return False
 
     def execute(self):
+
+        if self.steps not in self.dices:
+            return CannotMoveError(self.piece.name, self.steps)
+
         entrance_location = self.board.home_entrance_location(self.piece.player)
         home_location = self.home.location(self.piece)
         board_location = self.board.location(self.piece)
@@ -102,12 +115,16 @@ class MoveHomeCommand(Command):
             if all([isinstance(step, EmptyPiece) for step in self.home.state[:self.steps]]):
                 self.board.state[entrance_location] = EmptyPiece()
                 self.home.state[self.steps - 1] = self.piece
+                self.index = self.dices.index(self.steps)
+                self.dices.pop(self.index)
                 return NoError()
 
         if home_location != self.home.LOC_OUT_BOARD:
             if isinstance(self.home.state[self.steps - 1], EmptyPiece) and home_location == self.steps - 2:
                 self.home.state[home_location] = EmptyPiece()
                 self.home.state[self.steps - 1] = self.piece
+                self.index = self.dices.index(self.steps)
+                self.dices.pop(self.index)
                 return NoError()
 
         return CannotMoveError(self.piece.name, self.steps)
@@ -118,10 +135,12 @@ class MoveHomeCommand(Command):
         if self.old_board_location == entrance_location:
             self.board.state[entrance_location] = self.piece
             self.home.state[self.steps - 1] = EmptyPiece()
+            self.dices.insert(self.index, self.steps)
 
         if self.old_home_location != self.home.LOC_OUT_BOARD:
             self.home.state[self.old_home_location] = self.piece
             self.home.state[self.steps - 1] = EmptyPiece()
+            self.dices.insert(self.index, self.steps)
 
 
 class PassCommand(Command):
@@ -166,13 +185,13 @@ class CommandFactory:
             if command_key == 'move':
                 piece = piece_from_index(player, int(parts[1]))
                 steps = int(parts[2])
-                command = MoveCommand(gamestate.chessboard, piece, steps)
+                command = MoveCommand(gamestate.chessboard, piece, dices, steps)
                 return command
 
             if command_key == 'move-home':
                 piece = piece_from_index(player, int(parts[1]))
                 steps = int(parts[2])
-                command = MoveHomeCommand(gamestate.chessboard, piece, steps)
+                command = MoveHomeCommand(gamestate.chessboard, piece, dices, steps)
                 return command
 
             if command_key == 'help' or command_key == 'h':
@@ -186,5 +205,6 @@ class CommandFactory:
 
             raise InvalidCommandException(command_str)
 
+        dices = deepcopy(gamestate.current_dices)
         commands = CommandSequence([parse_single_command(norm(cmd)) for cmd in command_str.split(';')])
         return commands
