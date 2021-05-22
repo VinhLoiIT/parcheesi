@@ -8,8 +8,10 @@ PORT = 5050
 
 sio = Client(logger=True)
 
+
 def norm_cmd(command_str: str):
     return re.sub(' +', ' ', command_str.strip())
+
 
 @sio.on('turn')
 def get_turn(data):
