@@ -1,8 +1,12 @@
+from command import CommandFactory
+from player import Player
+from connection import Connection, PlayerConnection
 from os import name, system
 import numpy as np
 from board import Chessboard
-from typing import Optional
-from error import InvalidTurnError, NoError
+from typing import List, Optional
+from error import InvalidCommandError, InvalidTurnError, NoError
+from exception import InvalidCommandException
 
 
 class GameState:
@@ -20,11 +24,17 @@ class GameState:
         self.current_dices = None
         self.chessboard: Optional[Chessboard] = None
 
-    def start(self, players):
-        self.players = players
+    def start(self, connections: List[PlayerConnection]):
+        self.players = [Player(connection) for connection in connections]
         self.chessboard = Chessboard(self.PLAYER_LANE_SIZE, self.players)
         self._roll_dice()
         self.send_turn()
+
+    def get_player(self, connection: Connection):
+        for player in self.players:
+            if player.connection == connection:  # TODO: Should based on authentication
+                return player
+        return None
 
     def is_done(self):
         if len(self.players) == 1:
@@ -40,14 +50,21 @@ class GameState:
 
     def send_turn(self):
         self.printer.print(self)
-        self.current_player().take_turn(self)
+        self.current_player().take_turn(self.get_turn_info())
 
     def current_player(self):
         return self.players[self.current_player_index]
 
-    def receive_command(self, player, command):
-        print(self.current_player().name, ' - ', player.name, ' - command:', command)
-        if player != self.current_player():
+    def receive_command(self, connection: Connection, command_str: str):
+        player = self.get_player(connection)
+        try:
+            command = CommandFactory.parse(player, self.chessboard, self.current_dices, command_str)
+        except InvalidCommandException:
+            return InvalidCommandError(command_str)
+
+        current_player = self.current_player()
+
+        if player != current_player:
             print('Invalid Turn Error')
             return InvalidTurnError()
 
@@ -64,7 +81,7 @@ class GameState:
             self.current_player_index = 0
         self.send_turn()
 
-    def to_dict(self):
+    def get_turn_info(self):
         out = {}
         out['dice_values'] = self.current_dices
         out['state'] = self.chessboard.to_dict()

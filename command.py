@@ -1,7 +1,6 @@
 from error import CannotMoveError, NoError, Status
 from typing import Iterable, List
 from board import Chessboard
-from gamestate import GameState
 import re
 from exception import InvalidCommandException
 from piece import EmptyPiece, Piece
@@ -167,7 +166,7 @@ class ShowHelpCommand(Command):
 class CommandFactory:
 
     @staticmethod
-    def parse(player, gamestate: GameState, command_str: str):
+    def parse(player, chessboard, dices, command_str: str):
         def norm(cmd_str: str):
             cmd_str = re.sub(' +', ' ', cmd_str.strip())
             return cmd_str
@@ -185,13 +184,13 @@ class CommandFactory:
             if command_key == 'move':
                 piece = piece_from_index(player, int(parts[1]))
                 steps = int(parts[2])
-                command = MoveCommand(gamestate.chessboard, piece, dices, steps)
+                command = MoveCommand(chessboard, piece, dices, steps)
                 return command
 
             if command_key == 'move-home':
                 piece = piece_from_index(player, int(parts[1]))
                 steps = int(parts[2])
-                command = MoveHomeCommand(gamestate.chessboard, piece, dices, steps)
+                command = MoveHomeCommand(chessboard, piece, dices, steps)
                 return command
 
             if command_key == 'help' or command_key == 'h':
@@ -205,6 +204,6 @@ class CommandFactory:
 
             raise InvalidCommandException(command_str)
 
-        dices = deepcopy(gamestate.current_dices)
+        dices = deepcopy(dices)
         commands = CommandSequence([parse_single_command(norm(cmd)) for cmd in command_str.split(';')])
         return commands

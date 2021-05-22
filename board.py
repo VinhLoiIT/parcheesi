@@ -14,7 +14,7 @@ class Chessboard(Board):
     def __init__(self, player_lane_size: int, players) -> None:
         self.state: List[Piece] = [EmptyPiece() for _ in range(player_lane_size * len(players))]
         self.players = players
-        self.offset = {player: i * player_lane_size for i, player in enumerate(players)}
+        self.offset = {player.name: i * player_lane_size for i, player in enumerate(players)}
         self.player_lane_size = player_lane_size
 
     def __repr__(self) -> str:
@@ -30,13 +30,13 @@ class Chessboard(Board):
         return ' '.join(steps)
 
     def is_able_kickstart(self, player, steps: int):
-        player_offset = self.offset[player]
+        player_offset = self.offset[player.name]
         return (steps == 6 or steps == 1) and self.state[player_offset].player != player
 
     def is_pass_home_entrance(self, piece: Piece, steps: int):
         home_location = self.home_entrance_location(piece.player)
         piece_location = self.location(piece)
-        player_offset = self.offset[piece.player]
+        player_offset = self.offset[piece.player.name]
 
         # Norm piece location to 0->len(state)
         if piece_location < player_offset:
@@ -81,7 +81,7 @@ class Chessboard(Board):
         return is_clear_forward(piece_location, piece.player, steps)
 
     def home_entrance_location(self, player):
-        home_location = (self.offset[player] + len(self.state) - 1) % len(self.state)
+        home_location = (self.offset[player.name] + len(self.state) - 1) % len(self.state)
         return home_location
 
     def is_at_home_entrance(self, piece: Piece, location: int):
@@ -111,7 +111,7 @@ class Chessboard(Board):
         output['homes'] = {
             player.name: player.home.to_dict() for player in self.players
         }
-        output['board'] = [state.index if isinstance(state, Piece) else state for state in self.state]
+        output['board'] = [piece.to_dict() for piece in self.state]
         output['metadata'] = {
             'LANE_SIZE': self.player_lane_size
         }
@@ -122,7 +122,7 @@ class Home(Board):
 
     def __init__(self) -> None:
         super(Home, self).__init__()
-        self.state = [EmptyPiece() for _ in range(6)]
+        self.state: List[Piece] = [EmptyPiece() for _ in range(6)]
 
     def __repr__(self) -> str:
         return ' '.join([step.name for step in self.state])
@@ -139,4 +139,4 @@ class Home(Board):
         return True
 
     def to_dict(self):
-        return [state.index if isinstance(state, Piece) else state for state in self.state]
+        return [piece.to_dict() for piece in self.state]
