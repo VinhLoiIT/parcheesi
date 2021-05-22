@@ -135,6 +135,9 @@ class SocketGameConnection(GameConnection):
         if game is None:
             return -1, 'Game is None'
 
+        if not game.is_playing:
+            return -1, 'Game has not started yet'
+
         try:
             command = CommandFactory.parse(player, game.state, command_str)
         except InvalidCommandException:
