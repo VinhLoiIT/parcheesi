@@ -11,11 +11,13 @@ pip install -r requirements.txt
 
 Open a terminal then run your server:
 ```
+cd server
 python server.py
 ```
 
 Open another terminal then run a client with given username
 ```
+cd client
 python client.py {username}
 ```
 

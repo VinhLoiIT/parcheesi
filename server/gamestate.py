@@ -1,4 +1,5 @@
 import copy
+from visualizer import IGameStateVisualizer, NoVisualizer
 import re
 from objects.nest import Nest
 from objects.board import Home, Route
@@ -6,7 +7,6 @@ from command import (Command, CommandSequence, MoveInHomeCommand, MoveRouteComma
                      MoveToHomeCommand, PassCommand, StartCommand)
 from player import Player
 from connection import Connection, NoConnection, PlayerConnection
-from os import name, system
 import numpy as np
 from typing import List, Optional
 from error import InvalidCommandError, InvalidTurnError, NoError
@@ -20,13 +20,14 @@ class GameState:
     MAX_NUM_PLAYER = 4
     MAX_NUM_PIECE_PER_PLAYER = 4
 
-    def __init__(self, printer: Optional['GameStatePrinter'] = None) -> None:
+    def __init__(self, visualizer=NoVisualizer()) -> None:
+        # type: (IGameStateVisualizer,) -> None
         self.players: List[Player] = []
         self.route: Optional[Route] = None
         self.homes: List[Home] = []
         self.nests: List[Nest] = []
         self.current_player_index = 0
-        self.printer = printer or TerminalPrinter(self.CLEAR_SCREEN_EACH_RUN)
+        self.visualizer = visualizer
         self.current_dices = None
 
     def start(self, connections: List[PlayerConnection]):
@@ -76,7 +77,7 @@ class GameState:
         self.current_dices = np.random.randint(1, 7, size=2).tolist()
 
     def send_turn(self):
-        self.printer.print(self)
+        self.visualizer.visualize(self.get_turn_info())
         self.current_player().take_turn(self.get_turn_info())
 
     def current_player(self):
@@ -187,59 +188,3 @@ class GameState:
         if len(commands) == 1:
             return commands[0]
         return CommandSequence(commands)
-
-
-class GameStatePrinter:
-
-    def print(self):
-        pass
-
-
-class TerminalPrinter(GameStatePrinter):
-    def __init__(self, clear_screen: bool) -> None:
-        super().__init__()
-        self.clear_screen = clear_screen
-
-    def print(self, state: GameState):
-        if self.clear_screen:
-            _clear_screen()
-
-        print('-' * 10)
-        self._print_board(state)
-        print('-' * 10)
-
-        current_player = state.players[state.current_player_index]
-        print(f'Current player: {current_player.name}')
-        print('-' * 10)
-
-    # def __repr__(self) -> str:
-    #     steps = []
-    #     entrances = {self.home_entrance_location(player): player.name[0] for player in self.players}
-    #     print(' '.join([f'{x:02d}' for x in range(len(self.state))]))
-    #     for index, step in enumerate(self.state):
-    #         if isinstance(step, EmptyPiece) and index in entrances.keys():
-    #             representation = f'{entrances[index]}H'
-    #         else:
-    #             representation = step.name
-    #         steps.append(representation)
-    #     return ' '.join(steps)
-
-    def _print_board(self, state: GameState):
-        route = str(state.route)
-        homes = list(zip(*[str(home).split(' ') for home in state.homes]))
-        print(route)
-        spaces = '  ' * (GameState.PLAYER_LANE_SIZE - 1) + ' ' * GameState.PLAYER_LANE_SIZE
-        for home in homes:
-            home_str = spaces[:-1] + spaces.join(home)
-            print(home_str)
-
-
-# define our clear function
-def _clear_screen():
-    # for windows
-    if name == 'nt':
-        _ = system('cls')
-
-    # for mac and linux(here, os.name is 'posix')
-    else:
-        _ = system('clear')
