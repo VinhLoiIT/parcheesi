@@ -20,6 +20,6 @@ class GameRoomDB:
     def join(connection, room_name) -> Status:
         room = GameRoomDB.rooms.get(room_name, GameRoom())
         status = room.enter(connection)
-        if status:
+        if status.ok():
             GameRoomDB.rooms[room_name] = room
         return status

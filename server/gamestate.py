@@ -9,7 +9,7 @@ from player import Player
 from connection import Connection, NoConnection, PlayerConnection
 import numpy as np
 from typing import List, Optional
-from error import InvalidCommandError, InvalidTurnError, NoError
+from error import InvalidCommandError, InvalidTurnError
 from exception import InvalidCommandException
 
 
@@ -83,24 +83,26 @@ class GameState:
     def current_player(self):
         return self.players[self.current_player_index]
 
-    def receive_command(self, connection: Connection, command_str: str):
+    def process_command(self, connection: Connection, command_str: str):
         player = self.find_player(connection)
         current_player = self.current_player()
-
-        if player != current_player:
+        if player != self.current_player():
             print('Invalid Turn Error')
-            return InvalidTurnError()
+            connection.send_status(InvalidTurnError())
+            return
 
         try:
             command = self.parse_command(current_player, command_str)
         except InvalidCommandException:
-            return InvalidCommandError(command_str)
+            connection.send_status(InvalidCommandError(command_str))
 
         status = command.execute()
         print('Status:', status)
-        if not isinstance(status, NoError):
+        if status.ok():
+            self.next_turn()
+        else:
             command.undo()
-        return status
+            connection.send_status(status)
 
     def piece_from_index(self, player, index: int):
         for nest in self.nests:

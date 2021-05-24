@@ -61,7 +61,7 @@ class ParcheesiServer:
 
         connection = session['connection']
         status = GameRoomDB.join(connection, room_name)
-        if status:
+        if status.ok():
             session['room_name'] = room_name
         return _ack(status)
 

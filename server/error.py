@@ -9,11 +9,13 @@ class Status:
     def __repr__(self) -> str:
         return str(self)
 
-    def __bool__(self) -> bool:
-        return self.code == 0
+    def ok(self):
+        return self.code == NoError.code
 
 
 class NoError(Status):
+
+    code = 0
 
     def __init__(self) -> None:
         super().__init__(0, 'OK')

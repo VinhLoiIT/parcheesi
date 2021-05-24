@@ -57,11 +57,7 @@ class GameRoom:
             except queue.Empty:
                 continue
 
-            status = self.state.receive_command(connection, command_str)
-            connection.send_status(status)
-            if isinstance(status, NoError):
-                self.state.next_turn()
-
+            self.state.process_command(connection, command_str)
             if self.state.is_done():
                 break
         print('Game done')
