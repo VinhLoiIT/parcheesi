@@ -1,7 +1,8 @@
 from error import NoError, Status
 from player import Player
-from objects.piece import Piece
+
 from objects.board import Route
+from objects.piece import Piece
 
 
 class Nest:

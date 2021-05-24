@@ -1,6 +1,8 @@
+from typing import List
+
 from error import CannotMoveError, NoError, Status
 from player import Player
-from typing import List
+
 from objects.piece import EmptyPiece, Piece
 
 

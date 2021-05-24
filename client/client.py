@@ -1,7 +1,8 @@
+import re
+from argparse import ArgumentParser
+
 import eventlet
 from socketio import Client
-from argparse import ArgumentParser
-import re
 
 HOST = 'localhost'
 PORT = 5050
