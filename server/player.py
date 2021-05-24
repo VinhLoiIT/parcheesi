@@ -13,12 +13,18 @@ class Player:
         self.connection: Connection = NoConnection()
         self.offset: Optional[int] = None
         self.__name = 'NONAME'
+        self.next: Optional[Player] = None
 
-    def init(self, connection: PlayerConnection, offset: int):
-        # type: (Connection, int) -> None
+    def init(self, connection, offset, next=None):
+        # type: (Connection, int, Optional[Player]) -> None
         self.offset = offset
         self.connection = connection
         self.name = connection.username  # save in case lose connection
+        self.next = next
+
+    def set_next_player(self, next):
+        # type: (Player,) -> None
+        self.next = next
 
     def take_turn(self, turn_info: Dict) -> bool:
         return self.connection.send_data(PlayerConnection.CHANNEL_TURN, data=turn_info)

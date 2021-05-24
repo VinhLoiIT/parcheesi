@@ -26,11 +26,13 @@ class GameState:
         self.route: Optional[Route] = None
         self.homes: List[Home] = []
         self.nests: List[Nest] = []
-        self.current_player_index = 0
+        self.current_player: Optional[Player] = None
         self.visualizer = visualizer
         self.current_dices = None
 
     def start(self, connections: List[PlayerConnection]):
+        assert len(connections) >= 2
+
         self.route = Route(len(connections) * self.PLAYER_LANE_SIZE)
         for i, connection in enumerate(connections):
             player = Player()
@@ -39,6 +41,13 @@ class GameState:
             self.players.append(player)
             self.homes.append(Home(player))
             self.nests.append(Nest(player))
+
+        # setup round
+        for i, player in enumerate(self.players[:-1]):
+            player.set_next_player(self.players[i + 1])
+        self.players[-1].set_next_player(self.players[0])
+        self.current_player = self.players[0]
+
         self._roll_dice()
         self.send_turn()
 
@@ -78,21 +87,17 @@ class GameState:
 
     def send_turn(self):
         self.visualizer.visualize(self.get_turn_info())
-        self.current_player().take_turn(self.get_turn_info())
-
-    def current_player(self):
-        return self.players[self.current_player_index]
+        self.current_player.take_turn(self.get_turn_info())
 
     def process_command(self, connection: Connection, command_str: str):
         player = self.find_player(connection)
-        current_player = self.current_player()
-        if player != self.current_player():
+        if player != self.current_player:
             print('Invalid Turn Error')
             connection.send_status(InvalidTurnError())
             return
 
         try:
-            command = self.parse_command(current_player, command_str)
+            command = self.parse_command(self.current_player, command_str)
         except InvalidCommandException:
             connection.send_status(InvalidCommandError(command_str))
 
@@ -112,9 +117,7 @@ class GameState:
 
     def next_turn(self):
         self._roll_dice()
-        self.current_player_index += 1
-        if self.current_player_index == len(self.players):
-            self.current_player_index = 0
+        self.current_player = self.current_player.next
         self.send_turn()
 
     def get_turn_info(self):
