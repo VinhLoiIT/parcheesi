@@ -21,7 +21,7 @@ class CommandSequence(Command):
     def execute(self):
         for i, command in enumerate(self.commands):
             status = command.execute()
-            if not isinstance(status, NoError):
+            if not status.ok():
                 return status
             self.max_success_index = i
         return NoError()
@@ -56,7 +56,7 @@ class MoveRouteCommand(DiceConsumedCommand):
 
     def execute(self) -> Status:
         status = super().execute()
-        if not isinstance(status, NoError):
+        if not status.ok():
             return status
 
         self.status = self.route.move(self.piece, self.steps)
@@ -76,7 +76,7 @@ class MoveToHomeCommand(DiceConsumedCommand):
 
     def execute(self) -> Status:
         status = super().execute()
-        if not isinstance(status, NoError):
+        if not status.ok():
             return status
 
         piece_location = self.route.location(self.piece)
@@ -105,7 +105,7 @@ class MoveInHomeCommand(DiceConsumedCommand):
 
     def execute(self):
         status = super().execute()
-        if not isinstance(status, NoError):
+        if not status.ok():
             return status
 
         status = self.home.move(self.piece, self.steps)
@@ -124,7 +124,7 @@ class StartCommand(DiceConsumedCommand):
 
     def execute(self):
         status = super().execute()
-        if not isinstance(status, NoError):
+        if not status.ok():
             return status
 
         status = self.nest.move(self.route, self.steps)
