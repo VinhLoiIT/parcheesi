@@ -58,7 +58,7 @@ class GameRoom:
                 continue
 
             status = self.state.receive_command(connection, command_str)
-            connection.send_data(PlayerConnection.CHANNEL_STATUS, status)
+            connection.send_status(status)
             if isinstance(status, NoError):
                 self.state.next_turn()
 
@@ -72,3 +72,4 @@ class GameRoom:
             return Status(-1, 'Game has not started yet')
 
         self._command_queue.put((connection, command_str), block=True)
+        return NoError()

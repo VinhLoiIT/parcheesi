@@ -1,7 +1,19 @@
+import player
+
+
 class Piece:
-    def __init__(self, player, index: int) -> None:
+
+    PLACE_NEST = 0
+    PLACE_ROUTE = 1
+    PLACE_HOME = 2
+
+    def __init__(self, player: player.Player, index: int) -> None:
         self.index = index
         self.player = player
+        self.place = self.PLACE_NEST
+
+    def set_place(self, place):
+        self.place = place
 
     @property
     def name(self):
@@ -16,7 +28,7 @@ class Piece:
     def to_dict(self):
         return {
             'index': self.index,
-            'player': self.player
+            'player': None if self.player is None else self.player.name
         }
 
 

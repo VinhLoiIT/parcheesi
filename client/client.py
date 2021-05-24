@@ -15,14 +15,10 @@ def norm_cmd(command_str: str):
 
 @sio.on('turn')
 def get_turn(data):
-    print('Receive turn data:', data)
-    # command_str = 'pass'
-    # sio.emit('command', data=command_str, callback=on_command_status)
-    dice_values = data['dice_values']
-    board_state = data['state']
-    print()
-    print('Dices:', dice_values)
-    print(board_state)
+    print('Dices:', data['dice_values'])
+    print('Homes:', data['homes'])
+    print('Nests:', data['nests'])
+    print('Route:', data['route'])
 
 
 @sio.on('status')

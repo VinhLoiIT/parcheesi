@@ -1,10 +1,8 @@
-from error import CannotMoveError, NoError, Status
+from objects.nest import Nest
+from objects.board import Home, Route
+from error import CannotMoveError, InvalidDiceError, NoError, Status
 from typing import Iterable, List
-from board import Chessboard
-import re
-from exception import InvalidCommandException
-from piece import EmptyPiece, Piece
-from copy import deepcopy
+from objects.piece import Piece
 
 
 class Command:
@@ -33,113 +31,108 @@ class CommandSequence(Command):
             command.undo()
 
 
-class MoveCommand(Command):
-    def __init__(self, board: Chessboard, piece: Piece, dices: List[int], steps: int) -> None:
-        self.board = board
-        self.piece = piece
+class DiceConsumedCommand(Command):
+    def __init__(self, dices: List[int], steps: int) -> None:
         self.steps = steps
         self.dices = dices
 
-    def execute(self):
-
+    def execute(self) -> Status:
         if self.steps not in self.dices:
-            return CannotMoveError(self.piece.name, self.steps)
+            return InvalidDiceError(self.steps, self.dices)
 
-        piece_location = self.board.location(self.piece)
-        if piece_location == self.board.LOC_OUT_BOARD:
-            new_location = self.board.offset[self.piece.player]
-        elif piece_location + self.steps + 1 > len(self.board.state):
-            new_location = (piece_location + self.steps) % len(self.board.state)
-        elif piece_location + self.steps < 0:
-            new_location = piece_location + self.steps - 1 + len(self.board.state)
-        else:
-            new_location = piece_location + self.steps
-
-        self.old_location = piece_location
-        self.new_location = new_location
-
-        if not self.board.is_able_to_move(self.piece, self.steps):
-            return CannotMoveError(self.piece.name, self.steps)
-
-        self.board.set_location(self.piece, self.new_location)
         self.index = self.dices.index(self.steps)
         self.dices.pop(self.index)
         return NoError()
 
     def undo(self):
-        self.board.set_location(self.piece, self.old_location)
         self.dices.insert(self.index, self.steps)
 
 
-class MoveHomeCommand(Command):
-    def __init__(self, board: Chessboard, piece: Piece, dices: List[int], steps: int) -> None:
-        self.board = board
+class MoveRouteCommand(DiceConsumedCommand):
+    def __init__(self, route: Route, piece: Piece, dices: List[int], steps: int) -> None:
+        super().__init__(dices, steps)
+        self.route = route
         self.piece = piece
-        self.steps = steps
-        self.dices = dices
-        self.home = board.homes[piece.player]
 
-    def is_able_to_move(self, entrance_location, home_location, board_location):
-        entrance_location = self.board.home_entrance_location(self.piece.player)
-        home_location = self.home.location(self.piece)
-        board_location = self.board.location(self.piece)
-        if board_location == entrance_location:
-            if all([isinstance(step, EmptyPiece) for step in self.home.state[:self.steps]]):
-                return True
-            return False
+    def execute(self) -> Status:
+        status = super().execute()
+        if not isinstance(status, NoError):
+            return status
 
-        if home_location != self.home.LOC_OUT_BOARD:
-            if isinstance(self.home.state[self.steps - 1], EmptyPiece) and home_location == self.steps - 2:
-                return True
-            return False
+        self.status = self.route.move(self.piece, self.steps)
+        return self.status
 
-        return False
+    def undo(self):
+        super().undo()
+        self.route.undo_move(self.piece, self.steps)
 
-    def execute(self):
 
-        if self.steps not in self.dices:
-            return CannotMoveError(self.piece.name, self.steps)
+class MoveToHomeCommand(DiceConsumedCommand):
+    def __init__(self, route: Route, home: Home, piece: Piece, dices: List[int], steps: int) -> None:
+        super().__init__(dices, steps)
+        self.route = route
+        self.home = home
+        self.piece = piece
 
-        entrance_location = self.board.home_entrance_location(self.piece.player)
-        home_location = self.home.location(self.piece)
-        board_location = self.board.location(self.piece)
+    def execute(self) -> Status:
+        status = super().execute()
+        if not isinstance(status, NoError):
+            return status
 
-        self.old_home_location = home_location
-        self.old_board_location = board_location
-
-        if not self.is_able_to_move(entrance_location, home_location, board_location):
-            return CannotMoveError(self.piece.name, self.steps)
-
-        if board_location == entrance_location:
-            if all([isinstance(step, EmptyPiece) for step in self.home.state[:self.steps]]):
-                self.board.state[entrance_location] = EmptyPiece()
-                self.home.state[self.steps - 1] = self.piece
-                self.index = self.dices.index(self.steps)
-                self.dices.pop(self.index)
-                return NoError()
-
-        if home_location != self.home.LOC_OUT_BOARD:
-            if isinstance(self.home.state[self.steps - 1], EmptyPiece) and home_location == self.steps - 2:
-                self.home.state[home_location] = EmptyPiece()
-                self.home.state[self.steps - 1] = self.piece
-                self.index = self.dices.index(self.steps)
-                self.dices.pop(self.index)
+        piece_location = self.route.location(self.piece)
+        if self.route.is_at_home_entrance(self.piece):
+            if self.home.is_clear(0, self.steps - 1):
+                self.route.clear_location(piece_location)
+                self.home.set_location(self.piece, self.steps - 1)
+                self.piece.set_place(Piece.PLACE_HOME)
                 return NoError()
 
         return CannotMoveError(self.piece.name, self.steps)
 
     def undo(self):
-        entrance_location = self.board.home_entrance_location(self.piece.player)
+        super().undo()
+        piece_location = self.home.location(self.piece)
+        self.home.clear_location(piece_location)
+        self.route.set_location(self.piece, self.route.home_entrance_location(self.piece.player))
+        self.piece.set_place(Piece.PLACE_ROUTE)
 
-        if self.old_board_location == entrance_location:
-            self.board.state[entrance_location] = self.piece
-            self.home.state[self.steps - 1] = EmptyPiece()
-            self.dices.insert(self.index, self.steps)
 
-        if self.old_home_location != self.home.LOC_OUT_BOARD:
-            self.home.state[self.old_home_location] = self.piece
-            self.home.state[self.steps - 1] = EmptyPiece()
-            self.dices.insert(self.index, self.steps)
+class MoveInHomeCommand(DiceConsumedCommand):
+    def __init__(self, home: Home, piece: Piece, dices: List[int], steps: int) -> None:
+        super().__init__(dices, steps)
+        self.home = home
+        self.piece = piece
+
+    def execute(self):
+        status = super().execute()
+        if not isinstance(status, NoError):
+            return status
+
+        status = self.home.move(self.piece, self.steps)
+        return status
+
+    def undo(self):
+        super().undo()
+        self.home.undo_move(self.piece, self.steps)
+
+
+class StartCommand(DiceConsumedCommand):
+    def __init__(self, nest: Nest, route: Route, dices: List[int], steps: int) -> None:
+        super().__init__(dices, steps)
+        self.nest = nest
+        self.route = route
+
+    def execute(self):
+        status = super().execute()
+        if not isinstance(status, NoError):
+            return status
+
+        status = self.nest.move(self.route, self.steps)
+        return status
+
+    def undo(self):
+        super().undo()
+        self.nest.undo_move(self.route)
 
 
 class PassCommand(Command):
@@ -161,49 +154,3 @@ class ShowHelpCommand(Command):
         print(self.help_str)
         input('Press any key to continue.')
         return NoError()
-
-
-class CommandFactory:
-
-    @staticmethod
-    def parse(player, chessboard, dices, command_str: str):
-        def norm(cmd_str: str):
-            cmd_str = re.sub(' +', ' ', cmd_str.strip())
-            return cmd_str
-
-        def piece_from_index(player, index: int):
-            for piece in player.pieces:
-                if piece.index == index:
-                    return piece
-            raise InvalidCommandException(command_str)
-
-        def parse_single_command(cmd: str):
-            parts = cmd.split(' ')
-            command_key = parts[0]
-
-            if command_key == 'move':
-                piece = piece_from_index(player, int(parts[1]))
-                steps = int(parts[2])
-                command = MoveCommand(chessboard, piece, dices, steps)
-                return command
-
-            if command_key == 'move-home':
-                piece = piece_from_index(player, int(parts[1]))
-                steps = int(parts[2])
-                command = MoveHomeCommand(chessboard, piece, dices, steps)
-                return command
-
-            if command_key == 'help' or command_key == 'h':
-                help_str = 'HELP!!!!!!!!!!!!!!'
-                command = ShowHelpCommand(help_str)
-                return command
-
-            if command_key == 'pass' or command_key == 'p':
-                command = PassCommand(player)
-                return command
-
-            raise InvalidCommandException(command_str)
-
-        dices = deepcopy(dices)
-        commands = CommandSequence([parse_single_command(norm(cmd)) for cmd in command_str.split(';')])
-        return commands

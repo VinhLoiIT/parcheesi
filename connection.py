@@ -1,16 +1,20 @@
+from error import Status
 from socketio import Server
 
 
 class Connection:
 
+    CHANNEL_TURN = 'turn'
+    CHANNEL_STATUS = 'status'
+
     def send_data(self, channel, data) -> bool:
         pass
 
+    def send_status(self, status: Status) -> bool:
+        return self.send_data(self.CHANNEL_STATUS, (status.code, status.desc))
+
 
 class PlayerConnection(Connection):
-
-    CHANNEL_TURN = 'turn'
-    CHANNEL_STATUS = 'status'
 
     def __init__(self, sio: Server, sid, username) -> None:
         self.sio = sio
